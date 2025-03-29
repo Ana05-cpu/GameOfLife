@@ -167,4 +167,6 @@ int main(int argc, char* argv[]) {
     free(matr);
 
     return 0;
+
+    // Final update before submission, looked for memory leaks, not found
 }
