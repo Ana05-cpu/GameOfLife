@@ -67,6 +67,7 @@ void task1(char** matr, int m, int n, int gen, const char *fisierout) {
         exit(1);
     }
 
+    // Print the original matrix in the output file
     for(int i=0; i<m; i++) {
         for(int j=0; j<n; j++) {
             fprintf(output, "%c", matr[i][j]);
