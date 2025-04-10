@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct Coordonate {
     int l;
@@ -35,3 +36,9 @@ void printStack(Stack* stackTop, FILE* fisierout);
 void printList(Node* head, FILE* fisierout);
 
 Node* pop(Stack** top);
+
+void freeNode(Node* head);
+
+Node* copyNode(Stack** top);
+
+void BONUS(Stack* top, char** genUrm, int m, int n, int gen, const char* fisierout);

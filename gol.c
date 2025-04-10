@@ -171,29 +171,45 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
                 matr[i][j] = genUrm[i][j];
             }
         }
+        // Push generation list in stack
         push(&top, head, g+1);
     }
-    
+
     FILE* output = fopen(fisierout, "w");
     if(output==NULL) {
         printf("Eroare la crearea fisierului");
         exit(1);
     }
 
+    /* Create two inverted copies of the original stack, first for writing in the output file
+        and second for bonus task implementation*/
+
     Stack* aux = NULL;
+    Stack* aux2 = NULL;
     while(top != NULL) {
-        push(&aux, pop(&top), top->gen);
+        push(&aux, copyNode(&top), top->gen);
+        push(&aux2, pop(&top), top->gen);
     }
     printStack(aux, output);
     fclose(output);
+
+    //BONUS
+    BONUS(aux2, genUrm, m, n, gen, fisierout);
+    //BONUS
+
+    // Free the copies
+    while(aux != NULL) {
+        pop(&aux);
+        pop(&aux2);
+    }
 
     for(int k=0; k<m; k++) {
         free(genUrm[k]);
     }
     free(genUrm);
-
 }
 
+// Method for adding a node in the list, which represents an element in the stack
 void add(Node** head, Coord val) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->val = val;
@@ -218,6 +234,7 @@ void push(Stack** top, Node* v, int gen) {
     *top = newElem;
 }
 
+// Print the whole stack, iterating over the list elements and their contents
 void printStack(Stack* stackTop, FILE* fisierout) {
     Stack* aux = stackTop;
 
@@ -239,17 +256,71 @@ void printList(Node* head, FILE* fisierout) {
 }
 
 Node* pop(Stack** top) {
-
-    // stochează adresa vârfului în temp
     Stack *temp = (*top);
-
-    // stochează valoarea din vârf în aux
     Node* aux = temp->val;
-
-    // șterge elementul din vârf
     *top = (*top)->next;
+    freeNode(temp->val);
     free(temp);
 
     return aux;
 }
 
+void freeNode(Node* head) {
+    while(head!=NULL) {
+        Node* aux = head;
+        head = head->next;
+        free(aux);
+    }
+}
+
+// Similar implementation with pop method without freeing the element 
+Node* copyNode(Stack** top) {
+    Stack *temp = (*top);
+    Node* aux = temp->val;
+    return aux;
+}
+
+/* Implementing the bonus task, recreating the original matrix, 
+    starting from the last generation matrix and the stack of changes*/
+
+void BONUS(Stack* top, char** genUrm, int m, int n, int gen, const char* fisierout) {
+    // Reverse the stack back to the original order
+    Stack* aux = NULL;
+    while(top != NULL) {
+        push(&aux, pop(&top), top->gen);
+    }
+    // Apply changes only to the relevant cells
+    while(aux != NULL) {
+        Node* currCoord = pop(&aux);
+        Node* temp = currCoord; 
+        while(temp!=NULL) {
+            Coord coords = temp->val;
+            if(genUrm[coords.l][coords.c] == '+') {
+                genUrm[coords.l][coords.c] = 'X';
+            } else {
+                genUrm[coords.l][coords.c] = '+';
+            }
+            temp = temp->next;
+        }
+    }
+
+    /* Create a new output file with the extension ".out.bonus.out" for each test file, 
+        which contains the original matrix */
+    char fisier[30];
+    strcpy(fisier, fisierout);
+    strcat(fisier, ".bonus.out");
+
+    FILE* output = fopen(fisier, "w");
+    if(output == NULL) {
+        printf("Eroare");
+        exit(1);
+    }
+
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            fprintf(output, "%c", genUrm[i][j]);
+        }
+        fprintf(output, "\n");
+    }
+    fclose(output);
+}
