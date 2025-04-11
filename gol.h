@@ -39,6 +39,8 @@ Node* pop(Stack** top);
 
 void freeNode(Node* head);
 
-Node* copyNode(Stack** top);
+//Node* copyNode(Stack** top);
 
-void BONUS(Stack* top, char** genUrm, int m, int n, int gen, const char* fisierout);
+//void writeBonusFile(Stack* top, char** genUrm, int m, int n, const char* fisierout);
+
+//void BONUS(const char* file, const char* fisierout);

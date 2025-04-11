@@ -185,22 +185,15 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
         and second for bonus task implementation*/
 
     Stack* aux = NULL;
-    Stack* aux2 = NULL;
     while(top != NULL) {
-        push(&aux, copyNode(&top), top->gen);
-        push(&aux2, pop(&top), top->gen);
+        push(&aux, pop(&top), top->gen);
     }
     printStack(aux, output);
     fclose(output);
 
-    //BONUS
-    BONUS(aux2, genUrm, m, n, gen, fisierout);
-    //BONUS
-
     // Free the copies
     while(aux != NULL) {
         pop(&aux);
-        pop(&aux2);
     }
 
     for(int k=0; k<m; k++) {
@@ -273,6 +266,8 @@ void freeNode(Node* head) {
     }
 }
 
+// Work in progress for bonus task =)
+/*
 // Similar implementation with pop method without freeing the element 
 Node* copyNode(Stack** top) {
     Stack *temp = (*top);
@@ -280,32 +275,105 @@ Node* copyNode(Stack** top) {
     return aux;
 }
 
-/* Implementing the bonus task, recreating the original matrix, 
-    starting from the last generation matrix and the stack of changes*/
-
-void BONUS(Stack* top, char** genUrm, int m, int n, int gen, const char* fisierout) {
-    // Reverse the stack back to the original order
-    Stack* aux = NULL;
-    while(top != NULL) {
-        push(&aux, pop(&top), top->gen);
+void BONUS(const char* file, const char* fisierout) {
+    FILE* inputBonus = fopen(file, "r");
+    if(inputBonus == NULL) {
+        printf("Eroare la deschiderea fisierului");
+        exit(1);
     }
+
+    int m = 0, n = 0;
+    Stack* top = NULL;
+    char linie[200];
+    int endOfStack = 0;
+    while(fgets(linie, sizeof(linie), inputBonus) != NULL){
+        if(strcmp(linie, "\n") == 0) {
+            endOfStack = 1;
+            continue;
+        } 
+        if(endOfStack == 0) {
+            char* token = strtok(linie, " ");
+            if(token!=NULL) {
+                int gen = atoi(token);
+                Coord coord;
+                Node* head = NULL;
+                int count = 2;
+                token = strtok(NULL, " ");
+                while(token != NULL) {
+                    if(count == 2) {
+                        coord.l = atoi(token);
+                        count--;
+                    } else if(count == 1) {
+                        coord.c = atoi(token);
+                        count = 2;
+                        add(&head, coord);
+                    }
+                    token = strtok(NULL, " ");
+                }
+                push(&top, head, gen);
+            }  
+        } else {
+            while(fgets(linie, sizeof(linie), inputBonus) != NULL) {
+                if(m == 0) {
+                    for(int i = 0; i<strlen(linie); i++) {
+                        if(linie[i] != '\n') n++;
+                    }
+                }
+                m++;
+            }
+        }
+    }
+
+    fclose(inputBonus);
+
+    char** lastGen = (char**)malloc(m*sizeof(char*));
+    for(int k=0; k<m; k++) {
+        lastGen[k] = (char*)calloc(n, sizeof(char));
+    }
+
+    inputBonus = fopen(file, "r");
+
+    while(fgets(linie, sizeof(linie), inputBonus) != NULL){
+        if(strcmp(linie, "\n") == 0) {
+            break;
+        }
+    } 
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            do {
+                fscanf(inputBonus, "%c", &lastGen[i][j]);
+            } while(lastGen[i][j]=='\n' || lastGen[i][j]=='\r');
+        } 
+    }
+    fclose(inputBonus);
+
+    remove(file);
+
+    writeBonusFile(top, lastGen, m, n, fisierout);
+}
+
+//  Implementing the bonus task, recreating the original matrix, 
+//     starting from the last generation matrix and the stack of changes
+
+void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisierout) {
     // Apply changes only to the relevant cells
-    while(aux != NULL) {
-        Node* currCoord = pop(&aux);
+    printf("Am ajuns aici");
+    while(top != NULL) {
+        Node* currCoord = pop(&top);
         Node* temp = currCoord; 
         while(temp!=NULL) {
             Coord coords = temp->val;
-            if(genUrm[coords.l][coords.c] == '+') {
-                genUrm[coords.l][coords.c] = 'X';
+            if(lastGen[coords.l][coords.c] == '+') {
+                lastGen[coords.l][coords.c] = 'X';
             } else {
-                genUrm[coords.l][coords.c] = '+';
+                lastGen[coords.l][coords.c] = '+';
             }
             temp = temp->next;
         }
     }
 
-    /* Create a new output file with the extension ".out.bonus.out" for each test file, 
-        which contains the original matrix */
+    // Create a new output file with the extension ".out.bonus.out" for each test file, 
+    //    which contains the original matrix 
     char fisier[30];
     strcpy(fisier, fisierout);
     strcat(fisier, ".bonus.out");
@@ -318,9 +386,10 @@ void BONUS(Stack* top, char** genUrm, int m, int n, int gen, const char* fisiero
 
     for(int i=0; i<m; i++) {
         for(int j=0; j<n; j++) {
-            fprintf(output, "%c", genUrm[i][j]);
+            fprintf(output, "%c", lastGen[i][j]);
         }
         fprintf(output, "\n");
     }
     fclose(output);
 }
+*/
