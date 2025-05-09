@@ -191,15 +191,42 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
     printStack(aux, output);
     fclose(output);
 
+    char fisier[50];
+    strcpy(fisier, fisierout);
+    strcat(fisier, ".bonus.in");
+
+    FILE* bonusInput = fopen(fisier, "w");
+    if(bonusInput == NULL) {
+        printf("Eroare deschidere fisier bonus input");
+    }
+
+    printStack(aux, bonusInput);
+
     // Free the copies
     while(aux != NULL) {
         pop(&aux);
     }
 
+    fprintf(bonusInput, "\n");
+
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            fprintf(bonusInput, "%c", genUrm[i][j]);
+        }
+        fprintf(bonusInput, "\n");
+    }
+
+    fclose(bonusInput);
+
     for(int k=0; k<m; k++) {
         free(genUrm[k]);
     }
     free(genUrm);
+
+    //BONUS
+    BONUS(fisier, fisierout);
+    //BONUS
+
 }
 
 // Method for adding a node in the list, which represents an element in the stack
@@ -242,7 +269,7 @@ void printList(Node* head, FILE* fisierout) {
     Node* aux = head;
 
     while(aux != NULL) {
-        fprintf(fisierout, " %d %d", aux->val.l, aux->val.c);
+        fprintf(fisierout, " %d %d",  aux->val.l, aux->val.c);
         aux = aux->next;
     }
     fprintf(fisierout, "\n");
@@ -267,13 +294,6 @@ void freeNode(Node* head) {
 }
 
 // Work in progress for bonus task =)
-/*
-// Similar implementation with pop method without freeing the element 
-Node* copyNode(Stack** top) {
-    Stack *temp = (*top);
-    Node* aux = temp->val;
-    return aux;
-}
 
 void BONUS(const char* file, const char* fisierout) {
     FILE* inputBonus = fopen(file, "r");
@@ -284,7 +304,9 @@ void BONUS(const char* file, const char* fisierout) {
 
     int m = 0, n = 0;
     Stack* top = NULL;
-    char linie[200];
+    Coord coord;
+    Node* head = NULL;
+    char linie[300];
     int endOfStack = 0;
     while(fgets(linie, sizeof(linie), inputBonus) != NULL){
         if(strcmp(linie, "\n") == 0) {
@@ -292,11 +314,10 @@ void BONUS(const char* file, const char* fisierout) {
             continue;
         } 
         if(endOfStack == 0) {
-            char* token = strtok(linie, " ");
+            char const* token = strtok(linie, " ");
             if(token!=NULL) {
                 int gen = atoi(token);
-                Coord coord;
-                Node* head = NULL;
+                head = NULL;
                 int count = 2;
                 token = strtok(NULL, " ");
                 while(token != NULL) {
@@ -321,6 +342,7 @@ void BONUS(const char* file, const char* fisierout) {
                 }
                 m++;
             }
+            break;
         }
     }
 
@@ -346,8 +368,7 @@ void BONUS(const char* file, const char* fisierout) {
         } 
     }
     fclose(inputBonus);
-
-    remove(file);
+    // remove(file);
 
     writeBonusFile(top, lastGen, m, n, fisierout);
 }
@@ -357,7 +378,6 @@ void BONUS(const char* file, const char* fisierout) {
 
 void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisierout) {
     // Apply changes only to the relevant cells
-    printf("Am ajuns aici");
     while(top != NULL) {
         Node* currCoord = pop(&top);
         Node* temp = currCoord; 
@@ -374,7 +394,7 @@ void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisier
 
     // Create a new output file with the extension ".out.bonus.out" for each test file, 
     //    which contains the original matrix 
-    char fisier[30];
+    char fisier[50];
     strcpy(fisier, fisierout);
     strcat(fisier, ".bonus.out");
 
@@ -392,4 +412,212 @@ void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisier
     }
     fclose(output);
 }
-*/
+
+Tree* createTreeNode(Node* head) {
+    Tree* newNode = (Tree*)malloc(sizeof(Tree));
+    newNode->val = head;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+/* Implementation of the new rule, that revives dead cells that have exactly
+ 2 alive neighbours */
+Node* newRule(char** matr, int m, int n) {
+    Node* head = NULL;
+    Coord coord;
+
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            int vii = nr_vecini_vii(matr, i, j, m, n);
+            if(matr[i][j] == '+' && vii == 2) {
+                coord.l = i;
+                coord.c = j;
+                add(&head, coord);
+            }
+        }
+    }
+    return head;
+}
+
+// Standard Game of life rules
+Node* oldRule(char** matr, int m, int n) {
+    Node* head = NULL;
+    Coord coord;
+
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            int vii = nr_vecini_vii(matr, i, j, m, n);
+            if(matr[i][j] == 'X') {
+                if(vii < 2 || vii > 3) {
+                    coord.l = i;
+                    coord.c = j;
+                    add(&head, coord);
+                } 
+            } else {
+                if(vii == 3) {
+                    coord.l = i;
+                    coord.c = j;
+                    add(&head, coord);
+                }
+            }
+        }
+    }
+    return head;
+}
+
+// Updates the matrix based on the list of coordinates
+void nextGenMatr(char** matr, Node* head) {
+    Node* curr = head;
+    while(curr != NULL) {
+        Coord coord = curr->val;
+        if(matr[coord.l][coord.c] == '+') {
+            matr[coord.l][coord.c] = 'X';
+        } else matr[coord.l][coord.c] = '+';
+        curr = curr->next;
+    }
+}
+
+char** copyMatr(char** matr, int m, int n) {
+    char** copy = (char**)malloc(m*sizeof(char*));
+    for(int i=0; i<m; i++) {
+        copy[i] = (char*)calloc(n, sizeof(char));
+    }
+
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) {
+            copy[i][j] = matr[i][j];
+        }
+    }
+    return copy;
+}
+
+Tree* createTree(char** matr, int m, int n, int g, int gen) {
+    Tree* root = createTreeNode(NULL);
+
+    if(g == gen) return root; 
+
+    Node* head = NULL;
+    if(g == 0) {
+        // For the first gen, creates the list with all the cells that are alive
+        for(int i=0; i<m; i++) {
+            for(int j=0; j<n; j++) {  
+                if(matr[i][j] == 'X') {
+                    Coord coord;  
+                    coord.l = i;
+                    coord.c = j;
+                    add(&head, coord);
+                }
+            }
+        }
+        root->val = head;
+    }
+
+    /* Make a copy of the current matrix; 
+       Creates the coordinates list based on the new rule;
+       Uses the list to generate the next generation matrix;
+       Asigns the list to the left child of the current node
+       Calls the recursive method over the left child to continue the process, then it asigns
+         its children accordingly 
+       Frees the matrix used by the left child */
+    char** leftGen = copyMatr(matr, m, n);
+    Node* leftHead = newRule(leftGen, m, n);
+    nextGenMatr(leftGen, leftHead);
+    root->left = createTreeNode(leftHead);
+    Tree* leftChild = createTree(leftGen, m, n, g+1, gen);
+    root->left->left = leftChild->left;
+    root->left->right = leftChild->right;
+    for(int k=0; k<m; k++) {
+        free(leftGen[k]);
+    }
+    free(leftGen);
+    free(leftChild); // not needed anymore left child because of whole subtree is already calculated
+
+    // Same as the left child
+    char** rightGen = copyMatr(matr, m, n);
+    Node* rightHead = oldRule(rightGen, m, n);
+    nextGenMatr(rightGen, rightHead);
+    root->right = createTreeNode(rightHead);
+    Tree* rightChild = createTree(rightGen, m, n, g+1, gen);
+    root->right->left = rightChild->left;
+    root->right->right = rightChild->right;
+    for(int k=0; k<m; k++) {
+        free(rightGen[k]);
+    }
+    free(rightGen);
+    free(rightChild);
+
+    return root;    
+}
+
+void printMatr(FILE* fisierout, char** matr, int m, int n) {
+    for(int i=0; i<m; i++) {
+        for(int j=0; j<n; j++) { 
+            fprintf(fisierout, "%c", matr[i][j]);
+        }
+        fprintf(fisierout, "\n");
+    }
+    fprintf(fisierout, "\n");
+
+}
+
+/* Traverse the created tree in preorder and write to a file, for each node in the tree it 
+ traverses, the corresponding matrix */
+void preorder(FILE* fisierout, Tree* root, char** matr, int m, int n) {
+    if (root) {
+        nextGenMatr(matr, root->val);
+        char** leftGen = copyMatr(matr, m, n);
+        char** rightGen = copyMatr(matr, m, n);
+        printMatr(fisierout, matr, m, n);
+        preorder(fisierout, root->left, leftGen, m, n);         
+        preorder(fisierout, root->right, rightGen, m, n);
+
+        for(int k=0; k<m; k++) {
+            free(leftGen[k]);
+        }
+        free(leftGen);
+
+        for(int k=0; k<m; k++) {
+            free(rightGen[k]);
+        }
+        free(rightGen);      
+    }
+
+}
+
+void freeTree(Tree* root) {
+    if(root==NULL) return;
+
+    freeTree(root->left);
+    freeTree(root->right);
+    freeNode(root->val);
+
+    free(root);
+}
+
+void task3(char** matr, int m, int n, int gen, const char *fisierout) {
+    Tree* root = createTree(matr, m, n, 0, gen);
+
+    FILE* writeFile = fopen(fisierout, "w");
+    if(writeFile == NULL) {
+        printf("Eroare la deschidere fisier task 3");
+        exit(1);
+    }
+
+    /* Initialising a matrix with dead cells and modifying it using the list in the tree
+       while traversing in preorder */
+    for(int i=0;i<m;i++) {
+        for(int j =0;j<n;j++) {
+            matr[i][j] = '+';
+        }
+    }
+    preorder(writeFile, root, matr, m, n);
+
+    freeTree(root);
+
+    for(int k=0; k<m; k++) {
+        free(matr[k]);
+    }
+    free(matr);
+
+    fclose(writeFile);
+}

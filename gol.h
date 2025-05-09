@@ -21,6 +21,12 @@ struct Stack {
 };
 typedef struct Stack Stack;
 
+struct N {
+    Node* val; 
+    struct N *left ,* right ;
+};
+typedef struct N Tree;
+
 int nr_vecini_vii(char** matr, int i, int j, int m, int n);
 
 void task1(char** matr, int m, int n, int gen, const char *fisierout);
@@ -41,6 +47,25 @@ void freeNode(Node* head);
 
 //Node* copyNode(Stack** top);
 
-//void writeBonusFile(Stack* top, char** genUrm, int m, int n, const char* fisierout);
+void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisierout);
 
-//void BONUS(const char* file, const char* fisierout);
+void BONUS(const char* file, const char* fisierout);
+
+Tree* createTreeNode(Node* head);
+
+Node* newRule(char** matr, int m, int n);
+
+Node* oldRule(char** matr, int m, int n);
+
+void nextGenMatr(char** matr, Node* head);
+
+char** copyMatr(char** matr, int m, int n);
+
+Tree* createTree(char** matr, int m, int n, int g, int gen);
+
+void printMatr(FILE* fisierout, char** matr, int m, int n);
+
+void preorder(FILE* fisierout, Tree* root, char** matr, int m, int n);
+
+void task3(char** matr, int m, int n, int gen, const char *fisierout);
+

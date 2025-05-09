@@ -38,6 +38,9 @@ int main(int argc, char* argv[]) {
         case 2:
             task2(matr, m, n, gen, argv[2]);
             break;
+        case 3:
+            task3(matr, m, n, gen, argv[2]);
+            break;
     }
 
     for(int k=0; k<m; k++) {
