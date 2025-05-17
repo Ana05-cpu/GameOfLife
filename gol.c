@@ -653,8 +653,8 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
     for(int k=0; k<=nodeNo+1; k++) {
         adj[k] = (int*)calloc((nodeNo+2), sizeof(int));
     }
-    for(int i=0;i<=nodeNo;i++) {
-        for(int j =0;j<=nodeNo;j++) {
+    for(int i=0;i<nodeNo+1;i++) {
+        for(int j =0;j<nodeNo+1;j++) {
             adj[i][j] = 0;  
         }
     }
@@ -683,36 +683,52 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
     Graph* g = createGraph(nodeNo, E, adj);
 
     int* components = (int*)malloc((g->V+1)*sizeof(int));
-    for(int i=0; i<=g->V; i++) {
+    for(int i=1; i<=g->V; i++) {
         components[i] = 0;
     }
     int compNo = DFS(g, components);
 
     int* sol = (int*)malloc((g->V+2)*sizeof(int));
-
+    sol[0] = -1;
     for(int c = 1; c <= compNo; c++) {
         int vertices = 0;
-        for(int i=0; i<= g->V;i++) {
+        for(int i=1; i<=g->V;i++) {
             if(components[i] == c) {
                 vertices++;
             }
         }
         int* tempChain = longestChainInComponent(g, components, vertices, c);
         if(tempChain[0] > sol[0]) {
-            for(int j = 0; j <= tempChain[0]; j++) {
+            for(int j = 0; j <= tempChain[0] + 1; j++) {
                 sol[j] = tempChain[j];
             }
         }
         free(tempChain);
     }
     free(components);
+    for(int k=0; k<m; k++) {
+        free(matrComp[k]);
+    }
+    free(matrComp);      
 
     int l = sol[0];
     fprintf(fisierout, "%d\n", l);
-    for(int i = 1; i <= l; i++) {
+    for(int i = 1; i <= l + 1; i++) {
         fprintf(fisierout, "(%d,%d) ", coords[sol[i]].l, coords[sol[i]].c);
     }
     fprintf(fisierout, "\n");
+    free(sol);
+    free(coords);
+    freeGraph(g);
+}
+
+void freeGraph(Graph* g) {
+    for(int k=0; k<=g->V+1; k++) {
+        free(g->a[k]);
+    }
+    free(g->a);   
+
+    free(g);
 }
 
 int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
@@ -721,15 +737,21 @@ int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
     int* bestChain = (int*)malloc((g->V+1)*sizeof(int));
     bestChain[0] = 0;
 
-    for(int i=0; i<= g->V; i++) {
+    for(int i=1; i<=g->V; i++) {
         if(components[i] == c) {
-            for(int j=0; j <= g->V; j++) {
-                visited[i] = 0;
+            for(int j=1; j<=g->V; j++) {
+                visited[j] = 0;
             }
             currChain[0] = i; 
             visited[i] = 1;
-            DFSChain(g, components, c, currChain, visited, bestChain, 1, vertices);
-            if(bestChain[0] == vertices-1) break;
+            int longestChain = DFSChain(g, components, c, currChain, visited, bestChain, 1, vertices);
+            if (longestChain == 0) {
+                bestChain[0] = 0;
+                continue;
+            }
+            if (bestChain[0] == vertices - 1) {
+                break;
+            }
         } 
     }
     free(visited);
@@ -737,7 +759,7 @@ int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
     return bestChain;
 }
 
-void DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
+int DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
          int currLength, int vertices) {
     if(currLength > bestChain[0]) {
         bestChain[0] = currLength;
@@ -748,32 +770,39 @@ void DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, in
 
     if(currLength == vertices) {
         bestChain[0]--;
-        return;
+        return 1;
     }
+
     int lastVert = currChain[currLength - 1];
     for(int i = 0; i <= g->V; i++) {
         if(components[i] == c && g->a[lastVert][i] == 1 && visited[i] == 0) {
             currChain[currLength] = i;
             visited[i] = 1;
-            DFSChain(g, components, c, currChain, visited, bestChain, currLength+1, vertices);
+            int longestChain = DFSChain(g, components, c, currChain, visited, bestChain, currLength+1, vertices);
+            visited[i] = 0;
+            if (longestChain == 1) {
+                return 1;
+            }
         }
     }
+
+    return 0;
 }
 
 void DFS_scan(Graph *g, int* components, int comp_conexe, int visited[], int i) {
     components[i] = comp_conexe + 1;
     int j;
     visited[i] = 1;
-    for (j = 0; j <= g->V; j++) 
+    for (j = 1; j <= g->V; j++)
         if (g->a[i][j] == 1 && visited[j] == 0)
             DFS_scan(g, components, comp_conexe, visited, j);
 }
 
 int DFS(Graph *g, int* components) {
-    int i, comp_conexe = 0, visited[g->V];
-    for (i = 0; i <= g->V; i++)
+    int i, comp_conexe = 0, visited[g->V+1];
+    for (i = 1; i <= g->V; i++)
         visited[i] = 0;
-    for (i = 0; i <= g->V; i++) 
+    for (i = 1; i <= g->V; i++)
         if (visited[i] == 0) {
             DFS_scan(g, components, comp_conexe, visited, i);
             comp_conexe++;
@@ -803,15 +832,9 @@ void preorderGraphs(FILE* fisierout, Tree* root, char** matr, int m, int n) {
 }
 
 Graph* createGraph(int V, int E, int** adj) {
-    Graph* g = (Graph*)malloc(V*sizeof(Graph));
+    Graph* g = (Graph*)malloc(sizeof(Graph));
     g->V = V;
     g->E = E;
-    if(g->a != NULL) {
-        for(int i=0;i<g->V;i++) {
-            free(g->a[i]);
-        }
-        free(g->a);
-    }
     g->a = adj;
     return g;
 }
@@ -833,6 +856,12 @@ void task4(char** matr, int m, int n, int gen, const char *fisierout) {
         }
     }
     preorderGraphs(writeFile, root, matr, m, n);
+
+    freeTree(root);
+    for(int k=0; k<m; k++) {
+        free(matr[k]);
+    }
+    free(matr);
 
     fclose(writeFile);
 }

@@ -82,7 +82,7 @@ void processGraph(FILE* fisierout, char** matr, int m, int n);
 
 int* longestChainInComponent(Graph* g, int* components, int vertices, int c);
 
-void DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
+int DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
          int currLength, int vertices);
 
 void DFS_scan(Graph *g, int* components, int comp_conexe, int visited[], int i);
@@ -90,3 +90,5 @@ void DFS_scan(Graph *g, int* components, int comp_conexe, int visited[], int i);
 int DFS(Graph *g, int* components);
 
 Graph* createGraph(int V, int E, int** adj);
+
+void freeGraph(Graph* g);
