@@ -621,3 +621,218 @@ void task3(char** matr, int m, int n, int gen, const char *fisierout) {
 
     fclose(writeFile);
 }
+
+void processGraph(FILE* fisierout, char** matr, int m, int n) {
+    int** matrComp = (int**)malloc(m*sizeof(int*));
+    for(int k=0; k<m; k++) {
+        matrComp[k] = (int*)calloc(n, sizeof(int));
+    }
+    int nodeNo = 0;
+    for(int i=0;i<m;i++) {
+        for(int j =0;j<n;j++) {
+            if(matr[i][j] == 'X') {
+                matrComp[i][j] = ++nodeNo;
+            } else {
+                matrComp[i][j] = 0;
+            }
+        }
+    }
+
+    Coord* coords = (Coord*)malloc((nodeNo+1)*sizeof(Coord));
+    int count = 0;
+    for(int i=0;i<m;i++) {
+        for(int j =0;j<n;j++) {
+            if(matr[i][j] == 'X') {
+               coords[++count].l = i;
+               coords[count].c = j;
+            }
+        }
+    } 
+
+    int** adj = (int**)malloc((nodeNo+2)*sizeof(int*));
+    for(int k=0; k<=nodeNo+1; k++) {
+        adj[k] = (int*)calloc((nodeNo+2), sizeof(int));
+    }
+    for(int i=0;i<=nodeNo;i++) {
+        for(int j =0;j<=nodeNo;j++) {
+            adj[i][j] = 0;  
+        }
+    }
+    int E = 0;
+    for(int i=0;i<m;i++) {
+        for(int j =0;j<n;j++) {
+            if(matrComp[i][j] > 0) {
+                int currN = matrComp[i][j];
+                for(int v = -1; v <= 1; v++) {
+                    for(int w = -1; w <= 1; w++) {
+                        if(!(v == 0 && w == 0)) {
+                            if(i + v >= 0 && i + v < m && j + w >= 0 && j + w < n) {
+                                int neighbN = matrComp[i+v][j+w];
+                                if(neighbN > 0) {
+                                    adj[currN][neighbN] = 1;
+                                    adj[neighbN][currN] = 1;
+                                    if(currN < neighbN) E++;
+                                } 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Graph* g = createGraph(nodeNo, E, adj);
+
+    int* components = (int*)malloc((g->V+1)*sizeof(int));
+    for(int i=0; i<=g->V; i++) {
+        components[i] = 0;
+    }
+    int compNo = DFS(g, components);
+
+    int* sol = (int*)malloc((g->V+2)*sizeof(int));
+
+    for(int c = 1; c <= compNo; c++) {
+        int vertices = 0;
+        for(int i=0; i<= g->V;i++) {
+            if(components[i] == c) {
+                vertices++;
+            }
+        }
+        int* tempChain = longestChainInComponent(g, components, vertices, c);
+        if(tempChain[0] > sol[0]) {
+            for(int j = 0; j <= tempChain[0]; j++) {
+                sol[j] = tempChain[j];
+            }
+        }
+        free(tempChain);
+    }
+    free(components);
+
+    int l = sol[0];
+    fprintf(fisierout, "%d\n", l);
+    for(int i = 1; i <= l; i++) {
+        fprintf(fisierout, "(%d,%d) ", coords[sol[i]].l, coords[sol[i]].c);
+    }
+    fprintf(fisierout, "\n");
+}
+
+int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
+    int* visited = (int*)malloc((g->V+1)*sizeof(int));
+    int* currChain = (int*)malloc((g->V+1)*sizeof(int));
+    int* bestChain = (int*)malloc((g->V+1)*sizeof(int));
+    bestChain[0] = 0;
+
+    for(int i=0; i<= g->V; i++) {
+        if(components[i] == c) {
+            for(int j=0; j <= g->V; j++) {
+                visited[i] = 0;
+            }
+            currChain[0] = i; 
+            visited[i] = 1;
+            DFSChain(g, components, c, currChain, visited, bestChain, 1, vertices);
+            if(bestChain[0] == vertices-1) break;
+        } 
+    }
+    free(visited);
+    free(currChain);
+    return bestChain;
+}
+
+void DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
+         int currLength, int vertices) {
+    if(currLength > bestChain[0]) {
+        bestChain[0] = currLength;
+        for(int i=0; i<currLength; i++) {
+            bestChain[i+1] = currChain[i];
+        }
+    }
+
+    if(currLength == vertices) {
+        bestChain[0]--;
+        return;
+    }
+    int lastVert = currChain[currLength - 1];
+    for(int i = 0; i <= g->V; i++) {
+        if(components[i] == c && g->a[lastVert][i] == 1 && visited[i] == 0) {
+            currChain[currLength] = i;
+            visited[i] = 1;
+            DFSChain(g, components, c, currChain, visited, bestChain, currLength+1, vertices);
+        }
+    }
+}
+
+void DFS_scan(Graph *g, int* components, int comp_conexe, int visited[], int i) {
+    components[i] = comp_conexe + 1;
+    int j;
+    visited[i] = 1;
+    for (j = 0; j <= g->V; j++) 
+        if (g->a[i][j] == 1 && visited[j] == 0)
+            DFS_scan(g, components, comp_conexe, visited, j);
+}
+
+int DFS(Graph *g, int* components) {
+    int i, comp_conexe = 0, visited[g->V];
+    for (i = 0; i <= g->V; i++)
+        visited[i] = 0;
+    for (i = 0; i <= g->V; i++) 
+        if (visited[i] == 0) {
+            DFS_scan(g, components, comp_conexe, visited, i);
+            comp_conexe++;
+        }
+    return comp_conexe;
+}
+
+void preorderGraphs(FILE* fisierout, Tree* root, char** matr, int m, int n) {
+    if (root) {
+        nextGenMatr(matr, root->val);
+        char** leftGen = copyMatr(matr, m, n);
+        char** rightGen = copyMatr(matr, m, n);
+        processGraph(fisierout, matr, m, n);
+        preorderGraphs(fisierout, root->left, leftGen, m, n);         
+        preorderGraphs(fisierout, root->right, rightGen, m, n);
+
+        for(int k=0; k<m; k++) {
+            free(leftGen[k]);
+        }
+        free(leftGen);
+
+        for(int k=0; k<m; k++) {
+            free(rightGen[k]);
+        }
+        free(rightGen);      
+    }
+}
+
+Graph* createGraph(int V, int E, int** adj) {
+    Graph* g = (Graph*)malloc(V*sizeof(Graph));
+    g->V = V;
+    g->E = E;
+    if(g->a != NULL) {
+        for(int i=0;i<g->V;i++) {
+            free(g->a[i]);
+        }
+        free(g->a);
+    }
+    g->a = adj;
+    return g;
+}
+
+void task4(char** matr, int m, int n, int gen, const char *fisierout) {
+    Tree* root = createTree(matr, m, n, 0, gen);
+
+    FILE* writeFile = fopen(fisierout, "w");
+    if(writeFile == NULL) {
+        printf("Eroare la deschidere fisier task 3");
+        exit(1);
+    }
+
+    /* Initialising a matrix with dead cells and modifying it using the list in the tree
+       while traversing in preorder */
+    for(int i=0;i<m;i++) {
+        for(int j =0;j<n;j++) {
+            matr[i][j] = '+';
+        }
+    }
+    preorderGraphs(writeFile, root, matr, m, n);
+
+    fclose(writeFile);
+}

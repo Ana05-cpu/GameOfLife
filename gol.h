@@ -27,6 +27,11 @@ struct N {
 };
 typedef struct N Tree;
 
+typedef struct {
+    int V, E;
+    int **a;
+} Graph;
+
 int nr_vecini_vii(char** matr, int i, int j, int m, int n);
 
 void task1(char** matr, int m, int n, int gen, const char *fisierout);
@@ -69,3 +74,19 @@ void preorder(FILE* fisierout, Tree* root, char** matr, int m, int n);
 
 void task3(char** matr, int m, int n, int gen, const char *fisierout);
 
+void preorderGraphs(FILE* fisierout, Tree* root, char** matr, int m, int n);
+
+void task4(char** matr, int m, int n, int gen, const char *fisierout);
+
+void processGraph(FILE* fisierout, char** matr, int m, int n);
+
+int* longestChainInComponent(Graph* g, int* components, int vertices, int c);
+
+void DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
+         int currLength, int vertices);
+
+void DFS_scan(Graph *g, int* components, int comp_conexe, int visited[], int i);
+
+int DFS(Graph *g, int* components);
+
+Graph* createGraph(int V, int E, int** adj);
