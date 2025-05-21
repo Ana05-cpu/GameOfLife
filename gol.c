@@ -1,6 +1,5 @@
 #include "gol.h"
 
-
 /*
     This method counts the number of alive neighbours taking into consideration 
     if the cell is placed on the edge of the matrix
@@ -124,8 +123,6 @@ void task1(char** matr, int m, int n, int gen, const char *fisierout) {
     free(genUrm);
 }
 
-
-
 void task2(char** matr, int m, int n, int gen, const char *fisierout) {
     // Matrix for the next generation
     char** genUrm = (char**)malloc(m*sizeof(char*));
@@ -181,16 +178,16 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
         exit(1);
     }
 
-    /* Create two inverted copies of the original stack, first for writing in the output file
-        and second for bonus task implementation*/
-
+    // Invert the stack to print it in the correct order
     Stack* aux = NULL;
     while(top != NULL) {
-        push(&aux, pop(&top), top->gen);
+        int tempGen = top->gen;
+        push(&aux, pop(&top), tempGen);
     }
     printStack(aux, output);
     fclose(output);
 
+    // Bonus input file creation with extension ".out.bonus.in"
     char fisier[50];
     strcpy(fisier, fisierout);
     strcat(fisier, ".bonus.in");
@@ -202,13 +199,15 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
 
     printStack(aux, bonusInput);
 
-    // Free the copies
+    // Free the stack
     while(aux != NULL) {
-        pop(&aux);
+        Node* temp = pop(&aux);
+        freeNode(temp);
     }
 
     fprintf(bonusInput, "\n");
 
+    // Print final matrix in the bonus input file
     for(int i=0; i<m; i++) {
         for(int j=0; j<n; j++) {
             fprintf(bonusInput, "%c", genUrm[i][j]);
@@ -226,7 +225,6 @@ void task2(char** matr, int m, int n, int gen, const char *fisierout) {
     //BONUS
     BONUS(fisier, fisierout);
     //BONUS
-
 }
 
 // Method for adding a node in the list, which represents an element in the stack
@@ -265,6 +263,7 @@ void printStack(Stack* stackTop, FILE* fisierout) {
     }
 }
 
+// Print the list of coordinates
 void printList(Node* head, FILE* fisierout) {
     Node* aux = head;
 
@@ -279,7 +278,6 @@ Node* pop(Stack** top) {
     Stack *temp = (*top);
     Node* aux = temp->val;
     *top = (*top)->next;
-    freeNode(temp->val);
     free(temp);
 
     return aux;
@@ -293,8 +291,6 @@ void freeNode(Node* head) {
     }
 }
 
-// Work in progress for bonus task =)
-
 void BONUS(const char* file, const char* fisierout) {
     FILE* inputBonus = fopen(file, "r");
     if(inputBonus == NULL) {
@@ -306,20 +302,31 @@ void BONUS(const char* file, const char* fisierout) {
     Stack* top = NULL;
     Coord coord;
     Node* head = NULL;
-    char linie[300];
+    char linie[500];
+    // Flag for signaling the end of the stack in the file
     int endOfStack = 0;
+    // Iterate over each line (generation) in the stack
     while(fgets(linie, sizeof(linie), inputBonus) != NULL){
+        // Check if line is "\n" -> signals the end of the stack/the begining of the matrix
         if(strcmp(linie, "\n") == 0) {
             endOfStack = 1;
+            // Jump over the "\n" line
             continue;
         } 
         if(endOfStack == 0) {
+            // Split the line into strings (tokens) by space
             char const* token = strtok(linie, " ");
             if(token!=NULL) {
+                // First string is the generation so it gets converted to an integer 
                 int gen = atoi(token);
                 head = NULL;
                 int count = 2;
+                // Get the next string separated by space
                 token = strtok(NULL, " ");
+                /*
+                    Gets the first coordinate, which is the line, then reduce the count. After storing the second coordinate,
+                    which is the column, reset the count and store the coordinates in the list
+                */
                 while(token != NULL) {
                     if(count == 2) {
                         coord.l = atoi(token);
@@ -334,14 +341,16 @@ void BONUS(const char* file, const char* fisierout) {
                 push(&top, head, gen);
             }  
         } else {
-            while(fgets(linie, sizeof(linie), inputBonus) != NULL) {
+            do {
+                // Use the first line to determine the number of columns
                 if(m == 0) {
                     for(int i = 0; i<strlen(linie); i++) {
                         if(linie[i] != '\n') n++;
                     }
                 }
+                // Determine the number of lines
                 m++;
-            }
+            } while(fgets(linie, sizeof(linie), inputBonus) != NULL);
             break;
         }
     }
@@ -353,6 +362,7 @@ void BONUS(const char* file, const char* fisierout) {
         lastGen[k] = (char*)calloc(n, sizeof(char));
     }
 
+    // Reopen the input file and jump over the stack
     inputBonus = fopen(file, "r");
 
     while(fgets(linie, sizeof(linie), inputBonus) != NULL){
@@ -360,6 +370,7 @@ void BONUS(const char* file, const char* fisierout) {
             break;
         }
     } 
+    //  Store the matrix
     for(int i=0; i<m; i++) {
         for(int j=0; j<n; j++) {
             do {
@@ -368,13 +379,9 @@ void BONUS(const char* file, const char* fisierout) {
         } 
     }
     fclose(inputBonus);
-    // remove(file);
 
     writeBonusFile(top, lastGen, m, n, fisierout);
 }
-
-//  Implementing the bonus task, recreating the original matrix, 
-//     starting from the last generation matrix and the stack of changes
 
 void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisierout) {
     // Apply changes only to the relevant cells
@@ -389,11 +396,14 @@ void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisier
                 lastGen[coords.l][coords.c] = '+';
             }
             temp = temp->next;
-        }
+        } 
+        freeNode(currCoord);
     }
 
-    // Create a new output file with the extension ".out.bonus.out" for each test file, 
-    //    which contains the original matrix 
+    /*
+        Create a new output file with the extension ".out.bonus.out" for each test file, 
+        which contains the original matrix 
+    */
     char fisier[50];
     strcpy(fisier, fisierout);
     strcat(fisier, ".bonus.out");
@@ -410,6 +420,12 @@ void writeBonusFile(Stack* top, char** lastGen, int m, int n, const char* fisier
         }
         fprintf(output, "\n");
     }
+
+    for(int i=0; i<m; i++) {
+        free(lastGen[i]);
+    } 
+    free(lastGen);
+
     fclose(output);
 }
 
@@ -420,8 +436,10 @@ Tree* createTreeNode(Node* head) {
     return newNode;
 }
 
-/* Implementation of the new rule, that revives dead cells that have exactly
- 2 alive neighbours */
+/* 
+    Implementation of the new rule, that revives dead cells that have exactly
+    2 alive neighbours 
+ */
 Node* newRule(char** matr, int m, int n) {
     Node* head = NULL;
     Coord coord;
@@ -512,13 +530,15 @@ Tree* createTree(char** matr, int m, int n, int g, int gen) {
         root->val = head;
     }
 
-    /* Make a copy of the current matrix; 
-       Creates the coordinates list based on the new rule;
-       Uses the list to generate the next generation matrix;
-       Asigns the list to the left child of the current node
-       Calls the recursive method over the left child to continue the process, then it asigns
-         its children accordingly 
-       Frees the matrix used by the left child */
+    /* 
+        Make a copy of the current matrix; 
+        Creates the coordinates list based on the new rule;
+        Uses the list to generate the next generation matrix;
+        Asigns the list to the left child of the current node
+        Calls the recursive method over the left child to continue the process, then it asigns
+        its children accordingly 
+        Frees the matrix used by the left child
+    */
     char** leftGen = copyMatr(matr, m, n);
     Node* leftHead = newRule(leftGen, m, n);
     nextGenMatr(leftGen, leftHead);
@@ -530,7 +550,8 @@ Tree* createTree(char** matr, int m, int n, int g, int gen) {
         free(leftGen[k]);
     }
     free(leftGen);
-    free(leftChild); // not needed anymore left child because of whole subtree is already calculated
+    // Left child is not needed anymore because of whole subtree is already calculated
+    free(leftChild); 
 
     // Same as the left child
     char** rightGen = copyMatr(matr, m, n);
@@ -560,8 +581,10 @@ void printMatr(FILE* fisierout, char** matr, int m, int n) {
 
 }
 
-/* Traverse the created tree in preorder and write to a file, for each node in the tree it 
- traverses, the corresponding matrix */
+/* 
+    Traverse the created tree in preorder and write to a file, for each node in the tree it 
+    traverses, the corresponding matrix 
+*/
 void preorder(FILE* fisierout, Tree* root, char** matr, int m, int n) {
     if (root) {
         nextGenMatr(matr, root->val);
@@ -603,8 +626,10 @@ void task3(char** matr, int m, int n, int gen, const char *fisierout) {
         exit(1);
     }
 
-    /* Initialising a matrix with dead cells and modifying it using the list in the tree
-       while traversing in preorder */
+    /* 
+        Initialising a matrix with dead cells and modifying it using the list in the tree
+        while traversing in preorder 
+    */
     for(int i=0;i<m;i++) {
         for(int j =0;j<n;j++) {
             matr[i][j] = '+';
@@ -623,10 +648,15 @@ void task3(char** matr, int m, int n, int gen, const char *fisierout) {
 }
 
 void processGraph(FILE* fisierout, char** matr, int m, int n) {
+    /* 
+        Create a matrix that will assign a number starting from 1 for each cell that 
+        is alive. The dead cells will have 0 assigned 
+    */
     int** matrComp = (int**)malloc(m*sizeof(int*));
     for(int k=0; k<m; k++) {
         matrComp[k] = (int*)calloc(n, sizeof(int));
     }
+    // Count the number of vertices that will compose the graph
     int nodeNo = 0;
     for(int i=0;i<m;i++) {
         for(int j =0;j<n;j++) {
@@ -638,6 +668,7 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
         }
     }
 
+    // Array of coordinates for each vertex
     Coord* coords = (Coord*)malloc((nodeNo+1)*sizeof(Coord));
     int count = 0;
     for(int i=0;i<m;i++) {
@@ -649,6 +680,7 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
         }
     } 
 
+    // Create the adjacency matrix for the graph
     int** adj = (int**)malloc((nodeNo+2)*sizeof(int*));
     for(int k=0; k<=nodeNo+1; k++) {
         adj[k] = (int*)calloc((nodeNo+2), sizeof(int));
@@ -658,6 +690,11 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
             adj[i][j] = 0;  
         }
     }
+    /*
+        Go through each vertex in the created matrix and check all its neighbours.
+        If they are also vertices in the graph, fill the adjacency matrix accordingly.
+        Also calculate the number of edges.
+    */
     int E = 0;
     for(int i=0;i<m;i++) {
         for(int j =0;j<n;j++) {
@@ -682,17 +719,25 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
     }
     Graph* g = createGraph(nodeNo, E, adj);
 
+    /* 
+        Calculate the number of conected components and assign a number to them starting from 1
+        Create an array to make a correlation between vertex and component: the position in the array
+            represents the vertex and the value represents the component which contains it
+    */
     int* components = (int*)malloc((g->V+1)*sizeof(int));
     for(int i=1; i<=g->V; i++) {
         components[i] = 0;
     }
     int compNo = DFS(g, components);
 
+    // Array for solution -> the first element is the length of the chain and the rest show the vertices in order
     int* sol = (int*)malloc((g->V+2)*sizeof(int));
     sol[0] = -1;
+    // Iterate through all the components
     for(int c = 1; c <= compNo; c++) {
         int vertices = 0;
         for(int i=1; i<=g->V;i++) {
+            // Count the number of vertices in the component 
             if(components[i] == c) {
                 vertices++;
             }
@@ -713,10 +758,14 @@ void processGraph(FILE* fisierout, char** matr, int m, int n) {
 
     int l = sol[0];
     fprintf(fisierout, "%d\n", l);
-    for(int i = 1; i <= l + 1; i++) {
-        fprintf(fisierout, "(%d,%d) ", coords[sol[i]].l, coords[sol[i]].c);
+    if(sol[0] != -1) {
+        // Prints the pairs of coordinates for each vertex 
+        fprintf(fisierout, "(%d,%d)", coords[sol[1]].l, coords[sol[1]].c);
+        for(int i = 2; i <= l + 1; i++) {
+            fprintf(fisierout, " (%d,%d)", coords[sol[i]].l, coords[sol[i]].c);
+        }
+        fprintf(fisierout, "\n");
     }
-    fprintf(fisierout, "\n");
     free(sol);
     free(coords);
     freeGraph(g);
@@ -732,12 +781,24 @@ void freeGraph(Graph* g) {
 }
 
 int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
-    int* visited = (int*)malloc((g->V+1)*sizeof(int));
-    int* currChain = (int*)malloc((g->V+1)*sizeof(int));
     int* bestChain = (int*)malloc((g->V+1)*sizeof(int));
     bestChain[0] = 0;
 
+    // If there is a single vertex in the component, set size to 0 and store the coordinates of the single vertex
+    if(vertices == 1) {
+        for(int i=1; i<g->V;i++) {
+            if(components[i] == c) {
+                bestChain[0] = 0;
+                bestChain[1] = components[i];
+                return bestChain;
+            }
+        }
+    }
+
+    int* visited = (int*)malloc((g->V+1)*sizeof(int));
+    int* currChain = (int*)malloc((g->V+1)*sizeof(int));
     for(int i=1; i<=g->V; i++) {
+        // Only work with vertices from the current component
         if(components[i] == c) {
             for(int j=1; j<=g->V; j++) {
                 visited[j] = 0;
@@ -745,8 +806,9 @@ int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
             currChain[0] = i; 
             visited[i] = 1;
             int longestChain = DFSChain(g, components, c, currChain, visited, bestChain, 1, vertices);
+            // If there are 2 or more vertices in the components, but it cannot find a hamiltonian chain, set size to -1
             if (longestChain == 0) {
-                bestChain[0] = 0;
+                bestChain[0] = -1;
                 continue;
             }
             if (bestChain[0] == vertices - 1) {
@@ -759,15 +821,18 @@ int* longestChainInComponent(Graph* g, int* components, int vertices, int c) {
     return bestChain;
 }
 
+// Recursive method to find the hamiltonian chain in the component
 int DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int* bestChain,
          int currLength, int vertices) {
     if(currLength > bestChain[0]) {
         bestChain[0] = currLength;
         for(int i=0; i<currLength; i++) {
+            // Current chain doesn't store the length in the first element
             bestChain[i+1] = currChain[i];
         }
     }
 
+    // bestChain[0] was counting vertices, so it's decreased by 1 to show the number of edges
     if(currLength == vertices) {
         bestChain[0]--;
         return 1;
@@ -775,11 +840,14 @@ int DFSChain(Graph* g, int* components, int c, int* currChain, int* visited, int
 
     int lastVert = currChain[currLength - 1];
     for(int i = 0; i <= g->V; i++) {
+        // Only checks unvisited vertices from the current component that are adjacent to the last visited vertex
         if(components[i] == c && g->a[lastVert][i] == 1 && visited[i] == 0) {
             currChain[currLength] = i;
             visited[i] = 1;
             int longestChain = DFSChain(g, components, c, currChain, visited, bestChain, currLength+1, vertices);
+            // Set visited back to 0 to check the other possible chains continuing from the last vertex
             visited[i] = 0;
+            // Exit the recursive method after the first hamiltonian chain has been found
             if (longestChain == 1) {
                 return 1;
             }
@@ -810,6 +878,7 @@ int DFS(Graph *g, int* components) {
     return comp_conexe;
 }
 
+// Adapted the flow from task 3 for printing the matrices to printing the longest hamiltonian chain in each generation
 void preorderGraphs(FILE* fisierout, Tree* root, char** matr, int m, int n) {
     if (root) {
         nextGenMatr(matr, root->val);
@@ -848,8 +917,6 @@ void task4(char** matr, int m, int n, int gen, const char *fisierout) {
         exit(1);
     }
 
-    /* Initialising a matrix with dead cells and modifying it using the list in the tree
-       while traversing in preorder */
     for(int i=0;i<m;i++) {
         for(int j =0;j<n;j++) {
             matr[i][j] = '+';
