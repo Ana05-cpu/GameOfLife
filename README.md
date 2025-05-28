@@ -5,6 +5,7 @@ This project implements the Game of Life using matrices where '+' represents a d
   - Bonus: starting from the last matrix and the stack of changes, recreate the original matrix
 - Task 3: use a binary tree to show how the game changes with different sets of rules
 - Task 4: find the longest hamiltonian chain in a conected component in a graph representing the game matrix
+For more details, you can check the PROJECT section on this website: https://site-pa.netlify.app/proiecte/ 
 
 ## TASKS
 ### 1. Task 1 
@@ -39,3 +40,18 @@ T -> number of the task
 m, n -> number of rows and columns of the matrix
 
 K -> number of generations to calculate
+
+For testing, you can download the checker tool from the website provided above and follow the installation instructions.
+After installing, run the command ./checker -i for interactive mode.
+
+ ## Project Structure and Details
+ - FILES
+   - gol.c: contains the main logic of the Game of life
+   - gol.h: contains function declarations, struct definitions, and include guards to share code between source files
+   - gameoflife.c: handles input/output and program execution.
+ - Data structures used
+   - matrices, corresponding to different generations
+   - linked lists, that show the changes of the cells
+   - stack, for storing the lists
+   - binary tree, used to show how the game changes with different sets of rules
+   - graph, to find the longest hamiltonian chain 
