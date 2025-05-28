@@ -5,6 +5,7 @@ This project implements the Game of Life using matrices where '+' represents a d
   - Bonus: starting from the last matrix and the stack of changes, recreate the original matrix
 - Task 3: use a binary tree to show how the game changes with different sets of rules
 - Task 4: find the longest hamiltonian chain in a conected component in a graph representing the game matrix
+
 For more details, you can check the PROJECT section on this website: https://site-pa.netlify.app/proiecte/ 
 
 ## TASKS
